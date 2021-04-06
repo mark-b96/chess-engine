@@ -30,15 +30,26 @@ def main():
                     if square.row == updated_row and square.column == updated_column:
                         valid_move = True
                         board.update_board(clicked_square, square)
-                        if board.check:
-                            print("CHECK")
                         board.gui.clear_selection(valid_squares)
                         board.gui.draw_square(clicked_square)
+                        if board.check and not board.checkmate:
+                            print("CHECK")
+                            orange_colour = (255, 140, 0)
+                            board.gui.draw_square(square, colour=orange_colour)
+                        if board.checkmate:
+                            print("CHECKMATE!")
+                            red_colour = (255, 0, 0)
+                            board.gui.draw_square(square, colour=red_colour)
+                        if board.stalemate:
+                            print("STALEMATE!")
+                            yellow_colour = (255, 255, 0)
+                            board.gui.draw_square(square, colour=yellow_colour)
                         board.gui.draw_piece(square.piece.icon_asset, square)
                         board.gui.update_display()
                         break
                 if valid_move:
                     whites_turn = not whites_turn
+                    board.is_whites_turn = not board.is_whites_turn
                     clicked_square = None
                 else:
                     board.gui.clear_selection(valid_squares)
