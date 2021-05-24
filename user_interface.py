@@ -19,15 +19,23 @@ class GUI(object):
         return piece_icon
 
     def draw_piece(self, piece_icon, square):
-        self.game_board.blit(piece_icon, (square.column * self.square_size, square.row * self.square_size))
+        self.game_board.blit(
+            source=piece_icon,
+            dest=(square.column * self.square_size, square.row * self.square_size)
+        )
 
     def draw_square(self, square, colour=None):
-        pg.draw.rect(self.game_board,
-                     square.colour_code if colour is None else colour,
-                     [self.square_size * square.column,
-                      self.square_size * square.row,
-                      self.square_size,
-                      self.square_size])
+        square_dimensions = [
+            self.square_size * square.column,
+            self.square_size * square.row,
+            self.square_size,
+            self.square_size
+        ]
+        pg.draw.rect(
+            surface=self.game_board,
+            color=square.colour_code if colour is None else colour,
+            rect=square_dimensions
+        )
 
     @staticmethod
     def update_display():

@@ -16,7 +16,7 @@ class Piece(object):
 class Pawn(Piece):
     def __init__(self, _row, _column, _colour):
         super().__init__(_row, _column, _colour)
-        if self.row < 3:
+        if self.row < 2:
             self.moves = [[1, 0], [1, 1], [1, -1]]
         else:
             self.moves = [[-1, 0], [-1, 1], [-1, -1]]

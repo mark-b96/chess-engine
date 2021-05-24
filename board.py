@@ -18,6 +18,8 @@ class Board(object):
         self.is_whites_turn = True
         self.checkmate = False
         self.stalemate = False
+        self.previous_move = None
+        self.en_passant_capture_square = None
 
     def initialise_board(self):
         for row in range(self.rows):
@@ -62,7 +64,7 @@ class Board(object):
                 colour = "black"
             else:
                 colour = "white"
-            self.check = self.in_check(src_square, dst_square, colour)
+            self.check = self.is_in_check(src_square, dst_square, colour)
         if dst_square.piece:
             if dst_square.piece.colour != src_square.piece.colour:
                 if src_square.piece.colour == "white":
@@ -72,12 +74,27 @@ class Board(object):
         if type(src_square.piece) == Pawn and \
                 (dst_square.row == 7 or dst_square.row == 0) and \
                 not self.checking_for_check:
-            dst_square.piece = Queen(dst_square.row, dst_square.column, src_square.piece.colour)
-            piece_icon = self.gui.load_piece(dst_square)
-            self.gui.draw_piece(piece_icon, dst_square)
-            dst_square.piece.icon_asset = piece_icon
+                dst_square.piece = Queen(dst_square.row, dst_square.column, src_square.piece.colour)
+                piece_icon = self.gui.load_piece(dst_square)
+                self.gui.draw_piece(piece_icon, dst_square)
+                dst_square.piece.icon_asset = piece_icon
         else:
             dst_square.piece = src_square.piece
+
+        if self.en_passant_capture_square and \
+                not self.checking_for_check:
+
+            en_passant_row, en_passant_column = self.en_passant_capture_square
+            if dst_square.column == en_passant_column and \
+                    src_square.row == en_passant_row:
+                self.chessboard[en_passant_row][en_passant_column].piece = None
+                self.en_passant_capture_square = None
+                en_passant_square = self.chessboard[en_passant_row][en_passant_column]
+                if dst_square.piece.colour == "white":
+                    self.black_pieces.remove(en_passant_square)
+                else:
+                    self.white_pieces.remove(en_passant_square)
+                self.gui.clear_selection([en_passant_square])
 
         if dst_square.piece.colour == "white":
             self.white_pieces.append(dst_square)
@@ -142,33 +159,44 @@ class Board(object):
         row, column = move
         updated_row = row + square.row
         updated_column = column + square.column
-        if self.on_board(updated_row, updated_column):
+        if self.is_on_board(updated_row, updated_column):
             updated_square = self.chessboard[updated_row][updated_column]
-            if not self.own_piece(src_square, updated_square):
+            if not self.is_own_piece(src_square, updated_square):
                 if not self.checking_for_check:
                     colour = src_square.piece.colour
-                    in_check = self.in_check(src_square, updated_square, colour)
+                    in_check = self.is_in_check(src_square, updated_square, colour)
                 if type(src_square.piece) == Pawn:
+                    if self.previous_move:
+                        square_1, square_2 = self.previous_move
+                        if abs(square_1.row - square_2.row) == 2 and \
+                                not in_check and column != 0 and \
+                                square_2.column == updated_square.column and \
+                                square_2.row == src_square.row and \
+                                square_2.piece.colour != src_square.piece.colour:
+                            possible_moves.append(updated_square)
+                            if not self.checking_for_check:
+                                self.en_passant_capture_square = [square_2.row, square_2.column]
+
                     if column != 0:
-                        if self.capture_move(src_square, updated_square) and not in_check:
+                        if self.is_capture_move(src_square, updated_square) and not in_check:
                             possible_moves.append(updated_square)
                     else:
-                        if not in_check and not self.capture_move(src_square, updated_square):
+                        if not in_check and not self.is_capture_move(src_square, updated_square):
                             possible_moves.append(updated_square)
-                        if not self.capture_move(src_square, updated_square):
+                        if not self.is_capture_move(src_square, updated_square):
                             if (square.row == 6 and square.piece.colour == "white") or \
                                     (square.row == 1 and square.piece.colour == "black"):
                                 self.get_all_moves(move, src_square, updated_square, possible_moves, multi_moves)
                 else:
                     if not in_check:
                         possible_moves.append(updated_square)
-                    if not self.capture_move(src_square, updated_square):
-                        can_castle = self.castle_move(src_square, updated_square, row, column, in_check)
+                    if not self.is_capture_move(src_square, updated_square):
+                        can_castle = self.is_castle_move(src_square, updated_square, row, column, in_check)
                         if multi_moves or can_castle:
                             self.get_all_moves(move, src_square, updated_square, possible_moves, multi_moves)
         return possible_moves
 
-    def castle_move(self, src_square, dst_square, row, column, in_check):
+    def is_castle_move(self, src_square, dst_square, row, column, in_check) -> bool:
         if type(src_square.piece) == King and row == 0 and \
                 abs(column) == 1 and 2 < dst_square.column < 7 and\
                 not in_check and not self.check:
@@ -187,18 +215,18 @@ class Board(object):
         return False
 
     @staticmethod
-    def capture_move(src_square, dst_square) -> bool:
+    def is_capture_move(src_square, dst_square) -> bool:
         if dst_square.piece:
             if dst_square.piece.colour != src_square.piece.colour:
                 return True
         return False
 
-    def on_board(self, row: int, column: int) -> bool:
+    def is_on_board(self, row: int, column: int) -> bool:
         if (-1 < row < self.rows) and (-1 < column < self.columns):
             return True
         return False
 
-    def valid_piece(self, row: int, column: int, colour: str) -> object:
+    def is_valid_piece(self, row: int, column: int, colour: str) -> object:
         square = self.chessboard[row][column]
         if square.piece:
             if square.piece.colour == colour:
@@ -206,13 +234,13 @@ class Board(object):
         return None
 
     @staticmethod
-    def own_piece(original_square, target_square) -> bool:
+    def is_own_piece(original_square, target_square) -> bool:
         if target_square.piece:
             if target_square.piece.colour == original_square.piece.colour:
                 return True
         return False
 
-    def in_check(self, src_square, dst_square, src_square_colour) -> bool:
+    def is_in_check(self, src_square, dst_square, src_square_colour) -> bool:
         self.checking_for_check = True
         is_in_check = False
         src_piece_copy = copy.copy(src_square.piece)
