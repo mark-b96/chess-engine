@@ -1,17 +1,19 @@
-import os
+from pathlib import Path
 import pygame as pg
 
 
-class GUI(object):
-    def __init__(self, _width: int, _height: int):
-        self.screen_width, self.screen_height = _width, _height
-        self.game_board = pg.display.set_mode([self.screen_width, self.screen_height])
-        self.square_size = self.screen_width//8
+class GUI:
+    def __init__(self, board_size, square_size):
+        self.board_size: int = board_size
+        self.square_size: int = square_size
+        self.screen_size: int = self.board_size * self.square_size
+
+        self.game_board = pg.display.set_mode([self.screen_size, self.screen_size])
         self.clock = pg.time.Clock()
 
     def load_piece(self, square):
         piece_str = square.piece.__repr__().lower()
-        icon_path = os.path.join('assets', '{}.svg'.format(piece_str))
+        icon_path = Path('./assets', f'{piece_str}.svg')
         piece_icon = pg.image.load(icon_path).convert_alpha(self.game_board)
         new_colour = square.piece.colour_code
         piece_icon.fill((0, 0, 0, 255), None, pg.BLEND_RGBA_MULT)
