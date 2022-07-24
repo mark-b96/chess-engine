@@ -48,6 +48,10 @@ class GameController:
                 src_square = self.get_src_square()
 
             valid_squares = self.board_obj.get_piece_moves(src_square)
+            valid_squares = [
+                square if not isinstance(square, list) else square[0]
+                for square in valid_squares
+            ]
             self.display_possible_moves(valid_squares)
             dst_square = self.get_dst_square(valid_squares)
 
@@ -60,19 +64,22 @@ class GameController:
         self.update_game_state(
             src_square=src_square,
             dst_square=dst_square,
-            valid_squares=valid_squares
+            valid_squares=valid_squares,
         )
 
     def ai_move(self):
         move = self.ai_obj.get_optimal_move(board=self.board_obj)
-        src_square, dst_square = move
+        src_square, dst_square, promotion_piece = move
         self.update_game_state(
             src_square=src_square,
             dst_square=dst_square,
-            valid_squares=[dst_square]
+            valid_squares=[dst_square],
+            promotion_piece=promotion_piece
         )
 
-    def update_game_state(self, src_square, dst_square, valid_squares: list) -> None:
+    def update_game_state(self, src_square, dst_square, valid_squares: list, promotion_piece=None) -> None:
+        if promotion_piece:
+            self.board_obj.promotion_piece = promotion_piece
         self.board_obj.update_board(src_square, dst_square)
         valid_squares.extend(self.board_obj.get_move_squares())
         self.board_obj.clear_move_squares()

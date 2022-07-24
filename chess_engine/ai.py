@@ -1,6 +1,8 @@
-import copy
 from typing import List
-
+from chess_engine.board import Board
+import sys
+import ffmpeg
+ffmpeg.trim
 
 class AI:
     def __init__(self):
@@ -13,15 +15,30 @@ class AI:
             value=board_value
         )
         self.search_tree = Tree(root=node)
-        search_tree_depth = 3
+        search_tree_depth = 5
+        nodes = [node]
+        updated_nodes = []
 
-        # for _ in range(search_tree_depth):
-        self.build_search_tree(root_node=node)
-        for child_node in node.children:
-            self.build_search_tree(root_node=child_node)
+        # for depth in range(search_tree_depth):
+        #     for node in nodes:
+        #         updated_nodes.extend(self.add_layer_to_search_tree(root_node=node))
+        #     print(f"Depth: {depth+1}")
+        #     print(f"Number of nodes: {len(updated_nodes)}")
+        #     nodes = updated_nodes
+        #
+        #     updated_nodes = []
 
-        optimal_board = node.children[0].board
-        src, dst = optimal_board.current_move
+        for depth in range(search_tree_depth):
+            for node in nodes:
+                updated_nodes.extend(self.add_layer_to_search_tree(root_node=node))
+            print(f"Depth: {depth+1}")
+            print(f"Number of nodes: {len(updated_nodes)}")
+
+            updated_nodes = []
+        sys.exit()
+        move = board.all_possible_moves[0]
+        src, dst = move
+        dst = dst[0]
         src_square = board.get_square(
             row=src.row,
             column=src.column
@@ -30,10 +47,9 @@ class AI:
             row=dst.row,
             column=dst.column
         )
-        return [src_square, dst_square]
+        return [src_square, dst_square, board.promotion_piece]
 
-    @staticmethod
-    def build_search_tree(root_node):
+    def add_layer_to_search_tree(self, root_node):
         root_board = root_node.board
         all_possible_moves = root_board.get_all_possible_moves()
 
@@ -41,7 +57,13 @@ class AI:
             src_square, moves = move
 
             for possible_move in moves:
-                board = copy.deepcopy(root_board)
+                board = Board()
+                fen_repr = root_board.get_fen()
+                board.fen_repr = fen_repr
+                board.initialise_board()
+                if isinstance(possible_move, List):
+                    board.promotion_piece = possible_move[1]
+                    possible_move = possible_move[0]
                 move_src_square = board.get_square(
                     row=src_square.row,
                     column=src_square.column
@@ -60,14 +82,19 @@ class AI:
                     board=board,
                     value=board_value
                 )
+                node.board.is_whites_turn = not node.board.is_whites_turn
+                # self.search_tree.total_nodes += 1
                 root_node.children.append(node)
                 node.parent = root_node
+                del board
+        return root_node.children
 
 
 class Tree:
     def __init__(self, root):
         self.root = root
         self.depth = 0
+        self.total_nodes = 0
 
     def insert(self):
         pass
