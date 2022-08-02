@@ -54,7 +54,16 @@ class Pawn(Piece):
 class Knight(Piece):
     def __init__(self, row, column, colour, symbol):
         super().__init__(row, column, colour, symbol)
-        self.moves = ((2, 1), (1, 2), (-2, 1), (-2, -1), (2, -1), (-1, 2), (-1, -2), (1, -2))
+        self.moves = (
+            (2, 1),
+            (1, 2),
+            (-2, 1),
+            (-2, -1),
+            (2, -1),
+            (-1, 2),
+            (-1, -2),
+            (1, -2),
+        )
         self.value = 3
 
 
@@ -78,7 +87,16 @@ class Rook(Piece):
 class Queen(Piece):
     def __init__(self, row, column, colour, symbol):
         super().__init__(row, column, colour, symbol)
-        self.moves = ((1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1), (0, -1), (1, -1))
+        self.moves = (
+            (1, 0),
+            (1, 1),
+            (0, 1),
+            (-1, 1),
+            (-1, 0),
+            (-1, -1),
+            (0, -1),
+            (1, -1),
+        )
         self.multi_moves = True
         self.value = 9
 
@@ -86,9 +104,17 @@ class Queen(Piece):
 class King(Piece):
     def __init__(self, row, column, colour, symbol):
         super().__init__(row, column, colour, symbol)
-        self.moves = ((1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1), (0, -1), (1, -1))
+        self.moves = (
+            (1, 0),
+            (1, 1),
+            (0, 1),
+            (-1, 1),
+            (-1, 0),
+            (-1, -1),
+            (0, -1),
+            (1, -1),
+        )
         self.in_check = False
         self.has_castled = False
         self.value = 0
         self.castling_status = []
-

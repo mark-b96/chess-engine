@@ -1,7 +1,7 @@
 import copy
 from typing import List, Optional, Union
 from chess_engine.square import Square
-from chess_engine.pieces import Pawn, Bishop, Knight, Rook, Queen, King
+from chess_engine.pieces import Pawn, Bishop, Knight, Rook, Queen, King, Piece
 
 
 class Board:
@@ -17,8 +17,22 @@ class Board:
         self.all_possible_moves = []
         self.check_moves = {}
         self.promotion_piece = None
-        self.piece_to_symbol = {Queen: 'q', Bishop: 'b', Knight: 'n', Rook: 'r', King: 'k', Pawn: 'p'}
-        self.symbol_to_piece = {'q': Queen, 'b': Bishop, 'n': Knight, 'r': Rook, 'k': King, 'p': Pawn}
+        self.piece_to_symbol = {
+            Queen: "q",
+            Bishop: "b",
+            Knight: "n",
+            Rook: "r",
+            King: "k",
+            Pawn: "p",
+        }
+        self.symbol_to_piece = {
+            "q": Queen,
+            "b": Bishop,
+            "n": Knight,
+            "r": Rook,
+            "k": King,
+            "p": Pawn,
+        }
         self.pieces = {"white": {}, "black": {}}
         self._fen_repr = None
         self.fen_castling_status = None
@@ -28,13 +42,13 @@ class Board:
         return self._fen_repr
 
     @fen_repr.setter
-    def fen_repr(self, fen_repr):
+    def fen_repr(self, fen_repr: str):
         self._fen_repr = fen_repr
 
     def get_chessboard(self) -> List[List[Square]]:
         return self.chessboard
 
-    def initialise_board(self, parsed_fen_list=None) -> None:
+    def initialise_board(self, parsed_fen_list: List = None) -> None:
         if not parsed_fen_list:
             parsed_fen_list = self.parse_fen(fen_str=self._fen_repr)
         for row in range(self.rows):
@@ -84,10 +98,7 @@ class Board:
 
     def update_board(self, src_square: Square, dst_square: Square) -> None:
         self.is_whites_turn = not self.is_whites_turn
-        self.check = self.__is_in_check(
-            src_square=src_square,
-            dst_square=dst_square
-        )
+        self.check = self.__is_in_check(src_square=src_square, dst_square=dst_square)
         self.is_whites_turn = not self.is_whites_turn
 
         is_castle_move = self.__is_castle_move(
@@ -99,35 +110,44 @@ class Board:
             src_square.piece.castling_status.clear()
 
         if isinstance(src_square.piece, Rook) or isinstance(dst_square.piece, Rook):
-            king_piece_colour = dst_square.piece.colour \
-                if isinstance(dst_square.piece, Rook) else src_square.piece.colour
-            king_piece = self.pieces[king_piece_colour]['k'][0]
+            king_piece_colour = (
+                dst_square.piece.colour
+                if isinstance(dst_square.piece, Rook)
+                else src_square.piece.colour
+            )
+            king_piece = self.pieces[king_piece_colour]["k"][0]
             if king_piece.castling_status:
                 if src_square.piece.column > 4:
-                    king_symbol = "K" if self.is_whites_turn or king_piece_colour == "white" else "k"
+                    king_symbol = (
+                        "K"
+                        if self.is_whites_turn or king_piece_colour == "white"
+                        else "k"
+                    )
                     if king_symbol in king_piece.castling_status:
                         king_piece.castling_status.remove(king_symbol)
                 else:
-                    queen_symbol = "Q" if self.is_whites_turn or king_piece_colour == "white" else "q"
+                    queen_symbol = (
+                        "Q"
+                        if self.is_whites_turn or king_piece_colour == "white"
+                        else "q"
+                    )
                     if queen_symbol in king_piece.castling_status:
                         king_piece.castling_status.remove(queen_symbol)
 
         en_passant_move = self.__is_en_passant_move(
-            src_square=src_square,
-            dst_square=dst_square,
-            in_check=False
+            src_square=src_square, dst_square=dst_square, in_check=False
         )
         if en_passant_move:
             prev_src_square, prev_dst_square = self.previous_move
             en_passant_square = self.get_square(
-                row=prev_dst_square.row,
-                column=prev_dst_square.column
+                row=prev_dst_square.row, column=prev_dst_square.column
             )
             en_passant_square.piece = None
             self.move_squares.append(en_passant_square)
 
-        if isinstance(src_square.piece, Pawn) and \
-                (dst_square.row == (self.rows - 1) or dst_square.row == 0):
+        if isinstance(src_square.piece, Pawn) and (
+            dst_square.row == (self.rows - 1) or dst_square.row == 0
+        ):
             self.__set_promoted_piece(
                 src_square=src_square,
                 dst_square=dst_square,
@@ -138,29 +158,29 @@ class Board:
         src_square.piece = None
         dst_square.piece.has_moved = True
 
-        if isinstance(dst_square.piece, Pawn) and abs(src_square.row - dst_square.row) == 2:
+        if (
+            isinstance(dst_square.piece, Pawn)
+            and abs(src_square.row - dst_square.row) == 2
+        ):
             self.previous_move = [copy.copy(src_square), copy.copy(dst_square)]
         else:
             self.previous_move = None
 
-        if isinstance(dst_square.piece, King) and abs(src_square.column - dst_square.column) == 2:
+        if (
+            isinstance(dst_square.piece, King)
+            and abs(src_square.column - dst_square.column) == 2
+        ):
             if dst_square.column < (self.columns // 2):
-                rook_square = self.get_square(
-                    row=dst_square.row,
-                    column=0
-                )
+                rook_square = self.get_square(row=dst_square.row, column=0)
                 new_rook_square = self.get_square(
-                    row=dst_square.row,
-                    column=dst_square.column + 1
+                    row=dst_square.row, column=dst_square.column + 1
                 )
             else:
                 rook_square = self.get_square(
-                    row=dst_square.row,
-                    column=self.columns - 1
+                    row=dst_square.row, column=self.columns - 1
                 )
                 new_rook_square = self.get_square(
-                    row=dst_square.row,
-                    column=dst_square.column - 1
+                    row=dst_square.row, column=dst_square.column - 1
                 )
             new_rook_square.piece = rook_square.piece
             rook_square.piece = None
@@ -188,21 +208,22 @@ class Board:
             else:
                 self.stalemate = True
 
-    def __set_promoted_piece(self, src_square: Square, dst_square: Square, piece_type):
+    def __set_promoted_piece(
+        self, src_square: Square, dst_square: Square, piece_type: Piece
+    ) -> None:
         if not piece_type:
             piece_type = Queen
 
         piece_symbol = self.piece_to_symbol[piece_type]
         piece_symbol = piece_symbol.upper() if self.is_whites_turn else piece_symbol
         dst_square.piece = piece_type(
-            dst_square.row,
-            dst_square.column,
-            src_square.piece.colour,
-            piece_symbol
+            dst_square.row, dst_square.column, src_square.piece.colour, piece_symbol
         )
 
     @staticmethod
-    def __get_all_pieces(chessboard: List[List[Square]], colour: str = None) -> List[Square]:
+    def __get_all_pieces(
+        chessboard: List[List[Square]], colour: str = None
+    ) -> List[Square]:
         squares = []
         for row in chessboard:
             for square in row:
@@ -217,12 +238,8 @@ class Board:
         moves = []
         is_promoted = False
         for move in square.piece.get_moves():
-            possible_squares = self.__get_all_moves(
-                src_square=square,
-                move=move
-            )
+            possible_squares = self.__get_all_moves(src_square=square, move=move)
             if isinstance(square.piece, Pawn):
-
                 for dst_square in possible_squares:
                     if square.piece.is_being_promoted(dst_row=dst_square.row):
                         promotion_pieces = [Queen, Bishop, Knight, Rook]
@@ -244,10 +261,7 @@ class Board:
             if not self.__is_on_board(dst_row, dst_column):
                 break
 
-            dst_square = self.get_square(
-                row=dst_row,
-                column=dst_column
-            )
+            dst_square = self.get_square(row=dst_row, column=dst_column)
 
             if self.__is_own_piece(src_square, dst_square):
                 break
@@ -263,11 +277,16 @@ class Board:
                 if is_en_passant_move:
                     is_capture_move = True
 
-                if (not is_capture_move and column != 0) or \
-                        (is_capture_move and column == 0):
+                if (not is_capture_move and column != 0) or (
+                    is_capture_move and column == 0
+                ):
                     break
 
-                if not src_square.piece.has_moved and column == 0 and abs(src_square.row - dst_square.row) < 3:
+                if (
+                    not src_square.piece.has_moved
+                    and column == 0
+                    and abs(src_square.row - dst_square.row) < 3
+                ):
                     is_starting_pawn = True
                 else:
                     if not src_square.piece.has_moved and not is_capture_move:
@@ -276,7 +295,6 @@ class Board:
             is_in_check = self.__is_in_check(
                 src_square=src_square,
                 dst_square=dst_square,
-                is_capture_move=is_capture_move,
                 is_en_passant_move=is_en_passant_move,
             )
 
@@ -288,7 +306,11 @@ class Board:
 
             is_castle_move = self.__is_castle_move(src_square, dst_square, is_in_check)
 
-            if not src_square.piece.multi_moves and not is_castle_move and not is_starting_pawn:
+            if (
+                not src_square.piece.multi_moves
+                and not is_castle_move
+                and not is_starting_pawn
+            ):
                 break
 
             dst_row = row + dst_square.row
@@ -296,23 +318,37 @@ class Board:
 
         return all_possible_moves
 
-    def __is_en_passant_move(self, src_square: Square, dst_square: Square, in_check: bool) -> bool:
-        if not self.previous_move or in_check or \
-                src_square.column == dst_square.column or \
-                not isinstance(src_square.piece, Pawn):
+    def __is_en_passant_move(
+        self, src_square: Square, dst_square: Square, in_check: bool
+    ) -> bool:
+        if (
+            not self.previous_move
+            or in_check
+            or src_square.column == dst_square.column
+            or not isinstance(src_square.piece, Pawn)
+        ):
             return False
 
         square_1, square_2 = self.previous_move
 
-        if square_2.column != dst_square.column or \
-                square_2.row != src_square.row or \
-                square_2.piece.colour == src_square.piece.colour:
+        if (
+            square_2.column != dst_square.column
+            or square_2.row != src_square.row
+            or square_2.piece.colour == src_square.piece.colour
+        ):
             return False
         return True
 
-    def __is_castle_move(self, src_square: Square, dst_square: Square, in_check=False) -> bool:
-        if not isinstance(src_square.piece, King) or in_check or self.check or \
-                abs(src_square.row - dst_square.row) > 0 or abs(src_square.column - dst_square.column > 1):
+    def __is_castle_move(
+        self, src_square: Square, dst_square: Square, in_check: bool = False
+    ) -> bool:
+        if (
+            not isinstance(src_square.piece, King)
+            or in_check
+            or self.check
+            or abs(src_square.row - dst_square.row) > 0
+            or abs(src_square.column - dst_square.column > 1)
+        ):
             return False
 
         castling_status = [_.lower() for _ in src_square.piece.castling_status]
@@ -325,34 +361,15 @@ class Board:
         if dst_square.column < 4 and "q" not in castling_status:
             return False
 
-        if dst_square.column < (self.columns // 2):
+        if dst_square.column < 4:
             knight_column = 1
-            corner_column = 0
         else:
             knight_column = 6
-            corner_column = self.columns - 1
 
-        knight_square = self.get_square(
-            row=src_square.row,
-            column=knight_column
-        )
+        knight_square = self.get_square(row=src_square.row, column=knight_column)
 
         if knight_square.piece:
             return False
-
-        # corner_square = self.get_piece(
-        #     row=dst_square.row,
-        #     column=corner_column,
-        #     colour="white" if self.is_whites_turn else "black"
-        # )
-        # if not corner_square:
-        #     return False
-
-        # if not isinstance(corner_square.piece, Rook) or \
-        #         src_square.piece.has_moved or \
-        #         src_square.piece.has_castled or \
-        #         corner_square.piece.has_moved:
-        #     return False
 
         return True
 
@@ -368,11 +385,8 @@ class Board:
             return True
         return False
 
-    def get_piece(self, row: int, column: int, colour: str) -> Optional[Square]:
-        square = self.get_square(
-            row=row,
-            column=column
-        )
+    def get_piece_square(self, row: int, column: int, colour: str) -> Optional[Square]:
+        square = self.get_square(row=row, column=column)
         if not square.piece:
             return None
         if square.piece.colour == colour:
@@ -389,32 +403,33 @@ class Board:
         return False
 
     def __is_in_check(
-            self,
-            src_square: Square,
-            dst_square: Square,
-            is_capture_move: bool = False,
-            is_en_passant_move: bool = False,
+        self,
+        src_square: Square,
+        dst_square: Square,
+        is_en_passant_move: bool = False,
     ) -> bool:
         is_in_check = False
         dst_capture_piece = None
         en_passant_piece = None
         src_square_piece = src_square.piece
-        if is_capture_move:
+        if self.__is_capture_move(src_square, dst_square):
             dst_capture_piece = dst_square.piece
 
         if is_en_passant_move:
             prev_src_square, prev_dst_square = self.previous_move
             en_passant_square = self.get_square(
-                row=prev_dst_square.row,
-                column=prev_dst_square.column
+                row=prev_dst_square.row, column=prev_dst_square.column
             )
             en_passant_piece = en_passant_square.piece
             en_passant_square.piece = None
 
-        if isinstance(src_square.piece, Pawn) and \
-                (dst_square.row == (self.rows - 1) or dst_square.row == 0):
+        if isinstance(src_square.piece, Pawn) and (
+            dst_square.row == (self.rows - 1) or dst_square.row == 0
+        ):
             piece_symbol = "Q" if self.is_whites_turn else "q"
-            dst_square.piece = Queen(dst_square.row, dst_square.column, src_square.piece.colour, piece_symbol)
+            dst_square.piece = Queen(
+                dst_square.row, dst_square.column, src_square.piece.colour, piece_symbol
+            )
         else:
             dst_square.piece = src_square.piece
         src_square.piece = None
@@ -440,10 +455,7 @@ class Board:
             while 1:
                 if not self.__is_on_board(dst_row, dst_column):
                     break
-                king_dst_square = self.get_square(
-                    row=dst_row,
-                    column=dst_column
-                )
+                king_dst_square = self.get_square(row=dst_row, column=dst_column)
 
                 if self.__is_own_piece(king_src_square, king_dst_square):
                     break
@@ -452,22 +464,33 @@ class Board:
                     if king_dst_square.piece.colour == king_src_square.piece.colour:
                         break
 
-                    if isinstance(king_dst_square.piece, Pawn) and abs(king_src_square.row - king_dst_square.row) < 2:
+                    if (
+                        isinstance(king_dst_square.piece, Pawn)
+                        and abs(king_src_square.row - king_dst_square.row) < 2
+                    ):
                         if abs(move[0] * move[1]) == 1:
-                            if self.is_whites_turn and king_src_square.row > king_dst_square.row:
+                            if (
+                                self.is_whites_turn
+                                and king_src_square.row > king_dst_square.row
+                            ):
                                 is_in_check = True
-                            if not self.is_whites_turn and king_src_square.row < king_dst_square.row:
+                            if (
+                                not self.is_whites_turn
+                                and king_src_square.row < king_dst_square.row
+                            ):
                                 is_in_check = True
                         else:
                             break
                     elif isinstance(king_dst_square.piece, Queen):
                         is_in_check = True
-                    elif isinstance(king_dst_square.piece, Rook) and \
-                            (king_src_square.column == king_dst_square.column
-                                or king_src_square.row == king_dst_square.row):
+                    elif isinstance(king_dst_square.piece, Rook) and (
+                        king_src_square.column == king_dst_square.column
+                        or king_src_square.row == king_dst_square.row
+                    ):
                         is_in_check = True
-                    elif isinstance(king_dst_square.piece, Bishop) and \
-                            (abs(move[0] * move[1]) == 1):
+                    elif isinstance(king_dst_square.piece, Bishop) and (
+                        abs(move[0] * move[1]) == 1
+                    ):
                         is_in_check = True
                     else:
                         break
@@ -482,10 +505,7 @@ class Board:
 
             if not self.__is_on_board(dst_row, dst_column):
                 continue
-            king_dst_square = self.get_square(
-                row=dst_row,
-                column=dst_column
-            )
+            king_dst_square = self.get_square(row=dst_row, column=dst_column)
 
             if self.__is_own_piece(king_src_square, king_dst_square):
                 continue
@@ -515,7 +535,7 @@ class Board:
     def get_all_possible_moves(self) -> List[List[Union[Square, List[Square]]]]:
         pieces = self.__get_all_pieces(
             chessboard=self.chessboard,
-            colour="white" if self.is_whites_turn else "black"
+            colour="white" if self.is_whites_turn else "black",
         )
         all_possible_moves = []
         for square in pieces:
@@ -525,12 +545,12 @@ class Board:
         self.all_possible_moves = all_possible_moves
         return all_possible_moves
 
-    def get_board_value(self):
+    def get_board_value(self) -> int:
         pieces = self.__get_all_pieces(chessboard=self.chessboard)
         total_white = 0
         total_black = 0
         for square in pieces:
-            if square.piece.colour == 'white':
+            if square.piece.colour == "white":
                 total_white += square.piece.value
             else:
                 total_black += square.piece.value
@@ -540,18 +560,20 @@ class Board:
             return total_black - total_white
 
     def __repr__(self):
-        chess_board_str = ''
+        chess_board_str = ""
         for row in self.chessboard:
             chess_board_str += f"{str([str(piece) for piece in row])}\n"
         return chess_board_str
 
-    def get_fen_representation(self):
+    def get_fen_representation(self) -> List[List[str]]:
         fen_list = []
         for row in self.chessboard:
-            fen_list.append([str(square.piece) if square.piece else repr(square) for square in row])
+            fen_list.append(
+                [str(square.piece) if square.piece else repr(square) for square in row]
+            )
         return fen_list
 
-    def get_fen(self):
+    def get_fen(self) -> str:
         fen = ""
 
         for row_index, row in enumerate(self.chessboard):
@@ -568,16 +590,16 @@ class Board:
                 fen += str(empty_square_count)
             if row_index == 7:
                 if self.is_whites_turn:
-                    fen += ' w'
+                    fen += " w"
                 else:
-                    fen += ' b'
+                    fen += " b"
                 castling_stat = self.get_castling_status()
                 castling_str = ""
                 for element in castling_stat:
                     castling_str += element
-                fen += f' {castling_str}'
+                fen += f" {castling_str}"
             else:
-                fen += '/'
+                fen += "/"
         return fen
 
     def get_castling_status(self) -> List:
@@ -587,12 +609,15 @@ class Board:
         return white_king.castling_status + black_king.castling_status
 
     def parse_fen(self, fen_str: str) -> List[List[str]]:
-        fen_str = fen_str.replace(' ', '/')
-        fen_list = fen_str.split('/')
+        fen_str = fen_str.replace(" ", "/")
+        fen_list = fen_str.split("/")
         board_rep = fen_list[:8]
-        self.fen_castling_status = fen_list[9:][0]
+        if len(fen_list) > 9:
+            self.fen_castling_status = fen_list[9:][0]
+        else:
+            self.fen_castling_status = []
         turn = fen_list[8]
-        if turn == 'w':
+        if turn == "w":
             self.is_whites_turn = True
         else:
             self.is_whites_turn = False
@@ -601,7 +626,7 @@ class Board:
             parsed_col_list = []
             for col in row:
                 if col.isdigit():
-                    chr_list = int(col) * ['x']
+                    chr_list = int(col) * ["x"]
                     parsed_col_list.extend(chr_list)
                 else:
                     parsed_col_list.extend(col)

@@ -1,8 +1,6 @@
 from typing import List
 from chess_engine.board import Board
-import sys
-import ffmpeg
-ffmpeg.trim
+
 
 class AI:
     def __init__(self):
@@ -10,43 +8,22 @@ class AI:
 
     def get_optimal_move(self, board) -> List:
         board_value = board.get_board_value()
-        node = Node(
-            board=board,
-            value=board_value
-        )
+        node = Node(board=board, value=board_value)
         self.search_tree = Tree(root=node)
         search_tree_depth = 5
         nodes = [node]
         updated_nodes = []
 
-        # for depth in range(search_tree_depth):
-        #     for node in nodes:
-        #         updated_nodes.extend(self.add_layer_to_search_tree(root_node=node))
-        #     print(f"Depth: {depth+1}")
-        #     print(f"Number of nodes: {len(updated_nodes)}")
-        #     nodes = updated_nodes
-        #
-        #     updated_nodes = []
-
         for depth in range(search_tree_depth):
             for node in nodes:
                 updated_nodes.extend(self.add_layer_to_search_tree(root_node=node))
-            print(f"Depth: {depth+1}")
-            print(f"Number of nodes: {len(updated_nodes)}")
 
             updated_nodes = []
-        sys.exit()
         move = board.all_possible_moves[0]
         src, dst = move
         dst = dst[0]
-        src_square = board.get_square(
-            row=src.row,
-            column=src.column
-        )
-        dst_square = board.get_square(
-            row=dst.row,
-            column=dst.column
-        )
+        src_square = board.get_square(row=src.row, column=src.column)
+        dst_square = board.get_square(row=dst.row, column=dst.column)
         return [src_square, dst_square, board.promotion_piece]
 
     def add_layer_to_search_tree(self, root_node):
@@ -65,12 +42,10 @@ class AI:
                     board.promotion_piece = possible_move[1]
                     possible_move = possible_move[0]
                 move_src_square = board.get_square(
-                    row=src_square.row,
-                    column=src_square.column
+                    row=src_square.row, column=src_square.column
                 )
                 move_dst_square = board.get_square(
-                    row=possible_move.row,
-                    column=possible_move.column
+                    row=possible_move.row, column=possible_move.column
                 )
                 board.update_board(
                     src_square=move_src_square,
@@ -78,12 +53,9 @@ class AI:
                 )
 
                 board_value = board.get_board_value()
-                node = Node(
-                    board=board,
-                    value=board_value
-                )
+                node = Node(board=board, value=board_value)
                 node.board.is_whites_turn = not node.board.is_whites_turn
-                # self.search_tree.total_nodes += 1
+                self.search_tree.total_nodes += 1
                 root_node.children.append(node)
                 node.parent = root_node
                 del board
@@ -106,5 +78,3 @@ class Node:
         self.value = value
         self.parent = None
         self.children = []
-
-
