@@ -30,7 +30,7 @@ def start_game():
             or game_controller_obj.board_obj.stalemate
         ):
             break
-        game_controller_obj.human_move()
+        game_controller_obj.ai_move()
         if (
             game_controller_obj.board_obj.checkmate
             or game_controller_obj.board_obj.stalemate

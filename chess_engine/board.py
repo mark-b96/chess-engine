@@ -1,5 +1,6 @@
 import copy
 from typing import List, Optional, Union
+
 from chess_engine.square import Square
 from chess_engine.pieces import Pawn, Bishop, Knight, Rook, Queen, King, Piece
 

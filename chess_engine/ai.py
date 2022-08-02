@@ -1,4 +1,5 @@
 from typing import List
+
 from chess_engine.board import Board
 
 
@@ -23,6 +24,8 @@ class AI:
         src, dst = move
         dst = dst[0]
         src_square = board.get_square(row=src.row, column=src.column)
+        if isinstance(dst, list):
+            dst = dst[0]
         dst_square = board.get_square(row=dst.row, column=dst.column)
         return [src_square, dst_square, board.promotion_piece]
 
@@ -55,7 +58,6 @@ class AI:
                 board_value = board.get_board_value()
                 node = Node(board=board, value=board_value)
                 node.board.is_whites_turn = not node.board.is_whites_turn
-                self.search_tree.total_nodes += 1
                 root_node.children.append(node)
                 node.parent = root_node
                 del board
