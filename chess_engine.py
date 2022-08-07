@@ -6,7 +6,7 @@ from chess_engine.user_interface import GUI
 
 def start_game():
     board_obj = Board()
-    board_obj.fen_repr = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq"
+    board_obj.fen_repr = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
     board_obj.initialise_board()
 
     gui_obj = GUI(

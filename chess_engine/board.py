@@ -2,7 +2,15 @@ import copy
 from typing import List, Optional, Union
 
 from chess_engine.square import Square
-from chess_engine.pieces import Pawn, Bishop, Knight, Rook, Queen, King, Piece
+from chess_engine.pieces import (
+    Pawn,
+    Bishop,
+    Knight,
+    Rook,
+    Queen,
+    King,
+    Piece,
+)
 
 
 class Board:
@@ -598,7 +606,19 @@ class Board:
                 castling_str = ""
                 for element in castling_stat:
                     castling_str += element
-                fen += f" {castling_str}"
+                if castling_str:
+                    fen += f" {castling_str}"
+                else:
+                    fen += " -"
+                if self.previous_move:
+                    src_square, dst_square = self.previous_move
+                    passing_pawn_row = dst_square.row - 1 if self.is_whites_turn else dst_square.row + 1
+                    passing_square = self.get_square(row=passing_pawn_row, column=dst_square.column)
+                    fen += f" {passing_square}"
+                else:
+                    fen += " -"
+
+                fen += f" 0 1"
             else:
                 fen += "/"
         return fen
@@ -613,15 +633,10 @@ class Board:
         fen_str = fen_str.replace(" ", "/")
         fen_list = fen_str.split("/")
         board_rep = fen_list[:8]
-        if len(fen_list) > 9:
-            self.fen_castling_status = fen_list[9:][0]
-        else:
-            self.fen_castling_status = []
-        turn = fen_list[8]
-        if turn == "w":
-            self.is_whites_turn = True
-        else:
-            self.is_whites_turn = False
+
+        turn, castling_status, en_passant, half_move, full_move = fen_list[8:]
+        self.is_whites_turn = True if turn == "w" else False
+        self.fen_castling_status = castling_status if castling_status != "-" else []
         parsed_fen_list = []
         for row in board_rep:
             parsed_col_list = []
