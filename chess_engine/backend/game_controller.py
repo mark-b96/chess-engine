@@ -1,8 +1,8 @@
 from loguru import logger
 from typing import List
 
-from .square import Square
-from .pieces import Piece
+from chess_engine.backend.square import Square
+from chess_engine.backend.pieces import Piece
 
 
 class GameController:

@@ -1,8 +1,8 @@
 import pytest
 import chess
 
-from chess_engine.ai import Node, AI
-from chess_engine.board import Board
+from chess_engine.backend.ai import Node, AI
+from chess_engine.backend.board import Board
 
 
 @pytest.mark.parametrize(

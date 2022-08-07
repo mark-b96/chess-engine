@@ -1,21 +1,21 @@
-from typing import Tuple
+from typing import List, Tuple
 
 
 class Piece:
-    def __init__(self, row, column, colour, symbol):
+    def __init__(self, row: int, column: int, colour: str, symbol: str):
         self.row: int = row
         self.column: int = column
         self.colour: str = colour
         self.symbol: str = symbol
-        self.multi_moves = False
+        self.multi_moves: bool = False
+        self.has_moved: bool = False
         self.icon_asset = None
-        self.has_moved = False
         self.moves = None
 
         if self.colour == "white":
-            self.colour_code = (255, 255, 255, 0)
+            self.colour_code: Tuple = (255, 255, 255, 0)
         else:
-            self.colour_code = (0, 0, 0, 0)
+            self.colour_code: Tuple = (0, 0, 0, 0)
 
     def get_moves(self) -> Tuple:
         return self.moves
@@ -31,18 +31,18 @@ class Piece:
 
 
 class Pawn(Piece):
-    def __init__(self, row, column, colour, symbol):
+    def __init__(self, row: int, column: int, colour: str, symbol: str):
         super().__init__(row, column, colour, symbol)
         if self.colour == "black":
-            self.moves = ((1, 0), (1, 1), (1, -1))
+            self.moves: Tuple = ((1, 0), (1, 1), (1, -1))
             if row != 1:
-                self.has_moved = True
+                self.has_moved: bool = True
         else:
-            self.moves = ((-1, 0), (-1, 1), (-1, -1))
+            self.moves: Tuple = ((-1, 0), (-1, 1), (-1, -1))
             if row != 6:
-                self.has_moved = True
+                self.has_moved: bool = True
 
-        self.value = 1
+        self.value: int = 1
 
     def is_being_promoted(self, dst_row: int) -> bool:
         if self.colour == "white" and dst_row == 0:
@@ -52,9 +52,9 @@ class Pawn(Piece):
 
 
 class Knight(Piece):
-    def __init__(self, row, column, colour, symbol):
+    def __init__(self, row: int, column: int, colour: str, symbol: str):
         super().__init__(row, column, colour, symbol)
-        self.moves = (
+        self.moves: Tuple = (
             (2, 1),
             (1, 2),
             (-2, 1),
@@ -64,28 +64,28 @@ class Knight(Piece):
             (-1, -2),
             (1, -2),
         )
-        self.value = 3
+        self.value: int = 3
 
 
 class Bishop(Piece):
-    def __init__(self, row, column, colour, symbol):
+    def __init__(self, row: int, column: int, colour: str, symbol: str):
         super().__init__(row, column, colour, symbol)
-        self.moves = ((1, 1), (-1, 1), (-1, -1), (1, -1))
-        self.multi_moves = True
-        self.value = 3
+        self.moves: Tuple = ((1, 1), (-1, 1), (-1, -1), (1, -1))
+        self.multi_moves: bool = True
+        self.value: int = 3
 
 
 class Rook(Piece):
-    def __init__(self, row, column, colour, symbol):
+    def __init__(self, row: int, column: int, colour: str, symbol: str):
         super().__init__(row, column, colour, symbol)
-        self.moves = ((1, 0), (0, 1), (-1, 0), (0, -1))
-        self.multi_moves = True
-        self.value = 5
-        self.starting_position = (row, column)
+        self.moves: Tuple = ((1, 0), (0, 1), (-1, 0), (0, -1))
+        self.multi_moves: bool = True
+        self.value: int = 5
+        self.starting_position: Tuple = (row, column)
 
 
 class Queen(Piece):
-    def __init__(self, row, column, colour, symbol):
+    def __init__(self, row: int, column: int, colour: str, symbol: str):
         super().__init__(row, column, colour, symbol)
         self.moves = (
             (1, 0),
@@ -97,14 +97,14 @@ class Queen(Piece):
             (0, -1),
             (1, -1),
         )
-        self.multi_moves = True
-        self.value = 9
+        self.multi_moves: bool = True
+        self.value: int = 9
 
 
 class King(Piece):
-    def __init__(self, row, column, colour, symbol):
+    def __init__(self, row: int, column: int, colour: str, symbol: str):
         super().__init__(row, column, colour, symbol)
-        self.moves = (
+        self.moves: Tuple = (
             (1, 0),
             (1, 1),
             (0, 1),
@@ -114,7 +114,7 @@ class King(Piece):
             (0, -1),
             (1, -1),
         )
-        self.in_check = False
-        self.has_castled = False
-        self.value = 0
-        self.castling_status = []
+        self.in_check: bool = False
+        self.has_castled: bool = False
+        self.value: int = 0
+        self.castling_status: List = []

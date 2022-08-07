@@ -1,10 +1,10 @@
-from chess_engine.game_controller import GameController
-from chess_engine.board import Board
-from chess_engine.ai import AI
-from chess_engine.user_interface import GUI
+from chess_engine.backend.game_controller import GameController
+from chess_engine.backend.board import Board
+from chess_engine.backend.ai import AI
+from chess_engine.frontend.user_interface import GUI
 
 
-def start_game():
+def initialise_game() -> GameController:
     board_obj = Board()
     board_obj.fen_repr = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
     board_obj.initialise_board()
@@ -22,7 +22,10 @@ def start_game():
         board_obj=board_obj,
         gui_obj=gui_obj,
     )
+    return game_controller_obj
 
+
+def start_game(game_controller_obj: GameController):
     while 1:
         game_controller_obj.human_move()
         if (
@@ -39,7 +42,8 @@ def start_game():
 
 
 def main():
-    start_game()
+    game_controller_obj = initialise_game()
+    start_game(game_controller_obj=game_controller_obj)
 
 
 if __name__ == "__main__":

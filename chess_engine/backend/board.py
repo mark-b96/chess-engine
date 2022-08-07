@@ -1,8 +1,8 @@
 import copy
 from typing import List, Optional, Union
 
-from chess_engine.square import Square
-from chess_engine.pieces import (
+from chess_engine.backend.square import Square
+from chess_engine.backend.pieces import (
     Pawn,
     Bishop,
     Knight,

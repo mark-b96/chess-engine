@@ -2,7 +2,7 @@ import pygame as pg
 from pathlib import Path
 from typing import Tuple, List
 
-from .square import Square
+from chess_engine.backend.square import Square
 
 SQUARE_COLOURS = {
     "red": (255, 0, 0),
@@ -13,7 +13,7 @@ SQUARE_COLOURS = {
 
 
 class GUI:
-    def __init__(self, board_size, square_size):
+    def __init__(self, board_size: int, square_size: int):
         self.board_size: int = board_size
         self.square_size: int = square_size
         self.screen_size: int = self.board_size * self.square_size

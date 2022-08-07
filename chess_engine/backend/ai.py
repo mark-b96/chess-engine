@@ -1,6 +1,6 @@
 from typing import List
 
-from chess_engine.board import Board
+from chess_engine.backend.board import Board
 
 
 class AI:
