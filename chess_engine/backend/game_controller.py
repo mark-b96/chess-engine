@@ -3,6 +3,7 @@ from typing import List
 
 from chess_engine.backend.square import Square
 from chess_engine.backend.pieces import Piece
+from chess_engine.backend.board import BoardState
 
 
 class GameController:
@@ -85,19 +86,18 @@ class GameController:
             src_square=src_square, dst_square=dst_square, valid_squares=valid_squares
         )
 
-        if self.board_obj.checkmate:
+        if self.board_obj.board_state == BoardState.CHECKMATE:
             logger.info("Checkmate!")
             if self.board_obj.is_whites_turn:
                 logger.info("White Wins!")
             else:
                 logger.info("Black Wins!")
             self.gui_obj.draw_square(dst_square, colour_str="red")
-        elif self.board_obj.stalemate:
+        elif self.board_obj.board_state == BoardState.STALEMATE:
             logger.info("Stalemate!")
             self.gui_obj.draw_square(dst_square, colour_str="yellow")
-        elif self.board_obj.check:
+        elif self.board_obj.board_state == BoardState.CHECK:
             logger.info("Check!")
-            self.gui_obj.draw_square(dst_square, colour_str="orange")
 
         self.gui_obj.draw_piece(dst_square.piece.icon_asset, dst_square)
         self.gui_obj.update_display()

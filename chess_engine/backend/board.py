@@ -1,5 +1,6 @@
 import copy
-from typing import List, Optional, Union
+from typing import Dict, List, Optional, Tuple, Union
+from enum import Enum
 
 from chess_engine.backend.square import Square
 from chess_engine.backend.pieces import (
@@ -12,103 +13,140 @@ from chess_engine.backend.pieces import (
     Piece,
 )
 
+ROWS: int = 8
+COLUMNS: int = 8
+
+PIECE_TO_SYMBOL: Dict = {
+    Queen: "q",
+    Bishop: "b",
+    Knight: "n",
+    Rook: "r",
+    King: "k",
+    Pawn: "p",
+}
+
+SYMBOL_TO_PIECE: Dict = {
+    "q": Queen,
+    "b": Bishop,
+    "n": Knight,
+    "r": Rook,
+    "k": King,
+    "p": Pawn,
+}
+
+
+class BoardState(Enum):
+    NORMAL = 0
+    CHECK = 1
+    STALEMATE = 2
+    CHECKMATE = 3
+
 
 class Board:
     def __init__(self):
-        self.rows: int = 8
-        self.columns: int = 8
-        self.is_whites_turn: bool = True
+        self._is_whites_turn = True
+        self._board_state: BoardState = BoardState.NORMAL
 
-        self.check, self.checkmate, self.stalemate = False, False, False
-        self.chessboard, self.move_squares = [], []
-        self.previous_move = None
-        self.white_pieces, self.black_pieces = [], []
-        self.all_possible_moves = []
-        self.check_moves = {}
-        self.promotion_piece = None
-        self.piece_to_symbol = {
-            Queen: "q",
-            Bishop: "b",
-            Knight: "n",
-            Rook: "r",
-            King: "k",
-            Pawn: "p",
-        }
-        self.symbol_to_piece = {
-            "q": Queen,
-            "b": Bishop,
-            "n": Knight,
-            "r": Rook,
-            "k": King,
-            "p": Pawn,
-        }
-        self.pieces = {"white": {}, "black": {}}
+        self._previous_move = None
         self._fen_repr = None
-        self.fen_castling_status = None
+        self._fen_castling_status = None
+        self.promotion_piece = None
+
+        self._check_moves = {}
+        self._pieces = {"white": {}, "black": {}}
+        self._chessboard, self._move_squares, self.all_possible_moves = [], [], []
 
     @property
     def fen_repr(self):
         return self._fen_repr
 
+    @property
+    def is_whites_turn(self):
+        return self._is_whites_turn
+
+    @property
+    def previous_move(self):
+        return self._previous_move
+
+    @property
+    def board_state(self):
+        return self._board_state
+
+    @property
+    def is_terminal(self) -> bool:
+        if self.board_state == BoardState.CHECKMATE or self.board_state == BoardState.STALEMATE:
+            return True
+        return False
+
+    @board_state.setter
+    def board_state(self, board_state: BoardState):
+        self._board_state = board_state
+
     @fen_repr.setter
     def fen_repr(self, fen_repr: str):
         self._fen_repr = fen_repr
 
-    def get_chessboard(self) -> List[List[Square]]:
-        return self.chessboard
+    @is_whites_turn.setter
+    def is_whites_turn(self, whites_turn: bool):
+        self._is_whites_turn = whites_turn
 
-    def initialise_board(self, parsed_fen_list: List = None) -> None:
-        if not parsed_fen_list:
-            parsed_fen_list = self.parse_fen(fen_str=self._fen_repr)
-        for row in range(self.rows):
+    def get_chessboard(self) -> List[List[Square]]:
+        return self._chessboard
+
+    def initialise_board(self) -> None:
+        parsed_fen_list = self.parse_fen(fen_str=self._fen_repr)
+
+        for row, row_list in enumerate(parsed_fen_list):
             current_row = []
-            fen_row = parsed_fen_list[row]
-            for column in range(self.columns):
+            for column, piece_symbol in enumerate(row_list):
                 if (column + row) % 2 == 0:
                     colour = "white"
                 else:
                     colour = "black"
                 square = Square(row, column, colour)
-                piece_symbol = fen_row[column]
                 if piece_symbol.isupper():
                     piece_colour = "white"
                 else:
                     piece_colour = "black"
-                piece_type = self.symbol_to_piece.get(piece_symbol.lower())
-                if piece_type:
-                    square.piece = piece_type(row, column, piece_colour, piece_symbol)
-                    if isinstance(square.piece, King):
-                        if piece_colour == "white":
-                            if "K" in self.fen_castling_status:
-                                square.piece.castling_status.append("K")
-                            if "Q" in self.fen_castling_status:
-                                square.piece.castling_status.append("Q")
-                        else:
-                            if "k" in self.fen_castling_status:
-                                square.piece.castling_status.append("k")
-                            if "q" in self.fen_castling_status:
-                                square.piece.castling_status.append("q")
+                piece_type = SYMBOL_TO_PIECE.get(piece_symbol.lower())
+                if not piece_type:
+                    current_row.append(square)
+                    continue
+                square.piece = piece_type(row, column, piece_colour, piece_symbol)
+                if piece_symbol == "k":
+                    if "k" in self._fen_castling_status:
+                        square.piece.castling_status.append("k")
+                    if "q" in self._fen_castling_status:
+                        square.piece.castling_status.append("q")
 
-                    piece_symbol = piece_symbol.lower()
-                    if not self.pieces[piece_colour].get(piece_symbol):
-                        self.pieces[piece_colour][piece_symbol] = [square.piece]
-                    else:
-                        self.pieces[piece_colour][piece_symbol].append(square.piece)
+                if piece_symbol == "K":
+                    if "K" in self._fen_castling_status:
+                        square.piece.castling_status.append("K")
+                    if "Q" in self._fen_castling_status:
+                        square.piece.castling_status.append("Q")
+
+                piece_symbol = piece_symbol.lower()
+                if not self._pieces[piece_colour].get(piece_symbol):
+                    self._pieces[piece_colour][piece_symbol] = [square.piece]
+                else:
+                    self._pieces[piece_colour][piece_symbol].append(square.piece)
                 current_row.append(square)
-            self.chessboard.append(current_row)
+            self._chessboard.append(current_row)
 
     def get_move_squares(self) -> List[Square]:
-        if not self.move_squares:
+        if not self._move_squares:
             return []
-        return self.move_squares
+        return self._move_squares
 
     def clear_move_squares(self) -> None:
-        self.move_squares.clear()
+        self._move_squares.clear()
 
     def update_board(self, src_square: Square, dst_square: Square) -> None:
-        self.is_whites_turn = not self.is_whites_turn
-        self.check = self.__is_in_check(src_square=src_square, dst_square=dst_square)
-        self.is_whites_turn = not self.is_whites_turn
+        self._is_whites_turn = not self._is_whites_turn
+        is_check = self.__is_in_check(src_square=src_square, dst_square=dst_square)
+        if is_check:
+            self.board_state = BoardState.CHECK
+        self._is_whites_turn = not self._is_whites_turn
 
         is_castle_move = self.__is_castle_move(
             src_square=src_square,
@@ -124,12 +162,12 @@ class Board:
                 if isinstance(dst_square.piece, Rook)
                 else src_square.piece.colour
             )
-            king_piece = self.pieces[king_piece_colour]["k"][0]
+            king_piece = self._pieces[king_piece_colour]["k"][0]
             if king_piece.castling_status:
                 if src_square.piece.column > 4:
                     king_symbol = (
                         "K"
-                        if self.is_whites_turn or king_piece_colour == "white"
+                        if self._is_whites_turn or king_piece_colour == "white"
                         else "k"
                     )
                     if king_symbol in king_piece.castling_status:
@@ -137,7 +175,7 @@ class Board:
                 else:
                     queen_symbol = (
                         "Q"
-                        if self.is_whites_turn or king_piece_colour == "white"
+                        if self._is_whites_turn or king_piece_colour == "white"
                         else "q"
                     )
                     if queen_symbol in king_piece.castling_status:
@@ -152,10 +190,10 @@ class Board:
                 row=prev_dst_square.row, column=prev_dst_square.column
             )
             en_passant_square.piece = None
-            self.move_squares.append(en_passant_square)
+            self._move_squares.append(en_passant_square)
 
         if isinstance(src_square.piece, Pawn) and (
-            dst_square.row == (self.rows - 1) or dst_square.row == 0
+            dst_square.row == (ROWS - 1) or dst_square.row == 0
         ):
             self.__set_promoted_piece(
                 src_square=src_square,
@@ -171,51 +209,51 @@ class Board:
             isinstance(dst_square.piece, Pawn)
             and abs(src_square.row - dst_square.row) == 2
         ):
-            self.previous_move = [copy.copy(src_square), copy.copy(dst_square)]
+            self._previous_move = [copy.copy(src_square), copy.copy(dst_square)]
         else:
-            self.previous_move = None
+            self._previous_move = None
 
         if (
             isinstance(dst_square.piece, King)
             and abs(src_square.column - dst_square.column) == 2
         ):
-            if dst_square.column < (self.columns // 2):
+            if dst_square.column < (COLUMNS // 2):
                 rook_square = self.get_square(row=dst_square.row, column=0)
                 new_rook_square = self.get_square(
                     row=dst_square.row, column=dst_square.column + 1
                 )
             else:
                 rook_square = self.get_square(
-                    row=dst_square.row, column=self.columns - 1
+                    row=dst_square.row, column=COLUMNS - 1
                 )
                 new_rook_square = self.get_square(
                     row=dst_square.row, column=dst_square.column - 1
                 )
             new_rook_square.piece = rook_square.piece
             rook_square.piece = None
-            self.move_squares.append(rook_square)
+            self._move_squares.append(rook_square)
 
         dst_square.piece.has_moved = True
 
-        if not self.check:
+        if self.board_state == BoardState.NORMAL:
             return
-        colour = "black" if self.is_whites_turn else "white"
+        colour = "black" if self._is_whites_turn else "white"
         squares = self.__get_all_pieces(
-            chessboard=self.chessboard,
+            chessboard=self._chessboard,
             colour=colour,
         )
         all_possible_squares = []
-        self.is_whites_turn = not self.is_whites_turn
+        self._is_whites_turn = not self._is_whites_turn
         for square in squares:
             possible_squares = self.get_piece_moves(square)
             all_possible_squares.append(possible_squares)
-        self.is_whites_turn = not self.is_whites_turn
+        self._is_whites_turn = not self._is_whites_turn
 
         if not any(all_possible_squares):
-            if self.check:
-                self.checkmate = True
+            if self.board_state == BoardState.CHECK:
+                self.board_state = BoardState.CHECKMATE
             else:
-                self.stalemate = True
+                self.board_state = BoardState.STALEMATE
 
     def __set_promoted_piece(
         self, src_square: Square, dst_square: Square, piece_type: Piece
@@ -223,8 +261,8 @@ class Board:
         if not piece_type:
             piece_type = Queen
 
-        piece_symbol = self.piece_to_symbol[piece_type]
-        piece_symbol = piece_symbol.upper() if self.is_whites_turn else piece_symbol
+        piece_symbol = PIECE_TO_SYMBOL[piece_type]
+        piece_symbol = piece_symbol.upper() if self._is_whites_turn else piece_symbol
         dst_square.piece = piece_type(
             dst_square.row, dst_square.column, src_square.piece.colour, piece_symbol
         )
@@ -259,7 +297,7 @@ class Board:
                 moves.extend(possible_squares)
         return moves
 
-    def __get_all_moves(self, src_square, move) -> List[Square]:
+    def __get_all_moves(self, src_square: Square, move: Tuple[int, int]) -> List[Square]:
         all_possible_moves = []
         is_in_check, is_starting_pawn, is_en_passant_move = False, False, False
         row, column = move
@@ -354,20 +392,18 @@ class Board:
         if (
             not isinstance(src_square.piece, King)
             or in_check
-            or self.check
+            or self.board_state == BoardState.CHECK
             or abs(src_square.row - dst_square.row) > 0
             or abs(src_square.column - dst_square.column > 1)
         ):
             return False
 
         castling_status = [_.lower() for _ in src_square.piece.castling_status]
-        if not castling_status:
-            return False
-
-        if dst_square.column > 4 and "k" not in castling_status:
-            return False
-
-        if dst_square.column < 4 and "q" not in castling_status:
+        if (
+            not castling_status
+            or (dst_square.column > 4 and "k" not in castling_status)
+            or (dst_square.column < 4 and "q" not in castling_status)
+        ):
             return False
 
         if dst_square.column < 4:
@@ -389,8 +425,9 @@ class Board:
                 return True
         return False
 
-    def __is_on_board(self, row: int, column: int) -> bool:
-        if (-1 < row < self.rows) and (-1 < column < self.columns):
+    @staticmethod
+    def __is_on_board(row: int, column: int) -> bool:
+        if (-1 < row < ROWS) and (-1 < column < COLUMNS):
             return True
         return False
 
@@ -402,7 +439,7 @@ class Board:
             return square
 
     def get_square(self, row: int, column: int) -> Square:
-        return self.chessboard[row][column]
+        return self._chessboard[row][column]
 
     @staticmethod
     def __is_own_piece(src_square: Square, dst_square: Square) -> bool:
@@ -433,9 +470,9 @@ class Board:
             en_passant_square.piece = None
 
         if isinstance(src_square.piece, Pawn) and (
-            dst_square.row == (self.rows - 1) or dst_square.row == 0
+            dst_square.row == (ROWS - 1) or dst_square.row == 0
         ):
-            piece_symbol = "Q" if self.is_whites_turn else "q"
+            piece_symbol = "Q" if self._is_whites_turn else "q"
             dst_square.piece = Queen(
                 dst_square.row, dst_square.column, src_square.piece.colour, piece_symbol
             )
@@ -443,9 +480,9 @@ class Board:
             dst_square.piece = src_square.piece
         src_square.piece = None
 
-        colour = "white" if self.is_whites_turn else "black"
+        colour = "white" if self._is_whites_turn else "black"
         squares = self.__get_all_pieces(
-            chessboard=self.chessboard,
+            chessboard=self._chessboard,
             colour=colour,
         )
         king_src_square = None
@@ -479,12 +516,12 @@ class Board:
                     ):
                         if abs(move[0] * move[1]) == 1:
                             if (
-                                self.is_whites_turn
+                                self._is_whites_turn
                                 and king_src_square.row > king_dst_square.row
                             ):
                                 is_in_check = True
                             if (
-                                not self.is_whites_turn
+                                not self._is_whites_turn
                                 and king_src_square.row < king_dst_square.row
                             ):
                                 is_in_check = True
@@ -535,16 +572,16 @@ class Board:
 
         if is_in_check:
             piece_str = str(src_square)
-            if piece_str not in self.check_moves:
-                self.check_moves[piece_str] = []
-            self.check_moves[piece_str].append((dst_square.row, dst_square.column))
+            if piece_str not in self._check_moves:
+                self._check_moves[piece_str] = []
+            self._check_moves[piece_str].append((dst_square.row, dst_square.column))
 
         return is_in_check
 
     def get_all_possible_moves(self) -> List[List[Union[Square, List[Square]]]]:
         pieces = self.__get_all_pieces(
-            chessboard=self.chessboard,
-            colour="white" if self.is_whites_turn else "black",
+            chessboard=self._chessboard,
+            colour="white" if self._is_whites_turn else "black",
         )
         all_possible_moves = []
         for square in pieces:
@@ -554,29 +591,42 @@ class Board:
         self.all_possible_moves = all_possible_moves
         return all_possible_moves
 
-    def get_board_value(self) -> int:
-        pieces = self.__get_all_pieces(chessboard=self.chessboard)
+    def get_board_value(self, is_maximising_player: bool) -> int:
+        pieces = self.__get_all_pieces(chessboard=self._chessboard)
         total_white = 0
         total_black = 0
+        if self.is_terminal:
+            if is_maximising_player:
+                return 2000
+            else:
+                return -2000
+
         for square in pieces:
             if square.piece.colour == "white":
                 total_white += square.piece.value
             else:
                 total_black += square.piece.value
-        if self.is_whites_turn:
-            return total_white - total_black
+
+        if is_maximising_player:
+            if self._is_whites_turn:
+                return total_white - total_black
+            else:
+                return total_black - total_white
         else:
-            return total_black - total_white
+            if self._is_whites_turn:
+                return total_black - total_white
+            else:
+                return total_white - total_black
 
     def __repr__(self):
         chess_board_str = ""
-        for row in self.chessboard:
-            chess_board_str += f"{str([str(piece) for piece in row])}\n"
+        for row in self._chessboard:
+            chess_board_str += f"{str([str(square.piece) if square.piece else '0' for square in row])}\n"
         return chess_board_str
 
     def get_fen_representation(self) -> List[List[str]]:
         fen_list = []
-        for row in self.chessboard:
+        for row in self._chessboard:
             fen_list.append(
                 [str(square.piece) if square.piece else repr(square) for square in row]
             )
@@ -585,7 +635,7 @@ class Board:
     def get_fen(self) -> str:
         fen = ""
 
-        for row_index, row in enumerate(self.chessboard):
+        for row_index, row in enumerate(self._chessboard):
             empty_square_count = 0
             for square in row:
                 if square.piece:
@@ -597,8 +647,8 @@ class Board:
                     empty_square_count += 1
             if empty_square_count > 0:
                 fen += str(empty_square_count)
-            if row_index == 7:
-                if self.is_whites_turn:
+            if row_index == ROWS - 1:
+                if self._is_whites_turn:
                     fen += " w"
                 else:
                     fen += " b"
@@ -612,7 +662,7 @@ class Board:
                     fen += " -"
                 if self.previous_move:
                     src_square, dst_square = self.previous_move
-                    passing_pawn_row = dst_square.row - 1 if self.is_whites_turn else dst_square.row + 1
+                    passing_pawn_row = dst_square.row - 1 if self._is_whites_turn else dst_square.row + 1
                     passing_square = self.get_square(row=passing_pawn_row, column=dst_square.column)
                     fen += f" {passing_square}"
                 else:
@@ -624,19 +674,19 @@ class Board:
         return fen
 
     def get_castling_status(self) -> List:
-        black_king = self.pieces["black"]["k"][0]
-        white_king = self.pieces["white"]["k"][0]
+        black_king = self._pieces["black"]["k"][0]
+        white_king = self._pieces["white"]["k"][0]
 
         return white_king.castling_status + black_king.castling_status
 
     def parse_fen(self, fen_str: str) -> List[List[str]]:
         fen_str = fen_str.replace(" ", "/")
         fen_list = fen_str.split("/")
-        board_rep = fen_list[:8]
+        board_rep = fen_list[:ROWS]
 
         turn, castling_status, en_passant, half_move, full_move = fen_list[8:]
-        self.is_whites_turn = True if turn == "w" else False
-        self.fen_castling_status = castling_status if castling_status != "-" else []
+        self._is_whites_turn = True if turn == "w" else False
+        self._fen_castling_status = castling_status if castling_status != "-" else []
         parsed_fen_list = []
         for row in board_rep:
             parsed_col_list = []
@@ -649,14 +699,15 @@ class Board:
             parsed_fen_list.append(parsed_col_list)
         return parsed_fen_list
 
-    def moves_to_str(self, moves) -> List[str]:
+    @staticmethod
+    def moves_to_str(moves) -> List[str]:
         moves_str = []
         for move in moves:
             src_square, dst_squares = move
             for dst in dst_squares:
                 if isinstance(dst, List):
                     dst_square, piece_type = dst
-                    piece = self.piece_to_symbol[piece_type]
+                    piece = PIECE_TO_SYMBOL[piece_type]
                     dst = f"{dst_square}{piece}"
                 moves_str.append(f"{src_square}{dst}")
         return moves_str

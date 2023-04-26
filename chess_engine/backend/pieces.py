@@ -1,6 +1,12 @@
 from typing import List, Tuple
 
 
+PIECE_COLOUR_CODES = {
+    "white": (255, 255, 255, 0),
+    "black": (0, 0, 0, 0),
+}
+
+
 class Piece:
     def __init__(self, row: int, column: int, colour: str, symbol: str):
         self.row: int = row
@@ -9,13 +15,8 @@ class Piece:
         self.symbol: str = symbol
         self.multi_moves: bool = False
         self.has_moved: bool = False
-        self.icon_asset = None
-        self.moves = None
-
-        if self.colour == "white":
-            self.colour_code: Tuple = (255, 255, 255, 0)
-        else:
-            self.colour_code: Tuple = (0, 0, 0, 0)
+        self.colour_code: Tuple = PIECE_COLOUR_CODES[self.colour]
+        self.icon_asset, self.moves = None, None
 
     def get_moves(self) -> Tuple:
         return self.moves
@@ -81,7 +82,7 @@ class Rook(Piece):
         self.moves: Tuple = ((1, 0), (0, 1), (-1, 0), (0, -1))
         self.multi_moves: bool = True
         self.value: int = 5
-        self.starting_position: Tuple = (row, column)
+        self.starting_position: Tuple[int, int] = (row, column)
 
 
 class Queen(Piece):
